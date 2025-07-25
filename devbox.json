@@ -1,0 +1,29 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.15.0/.schema/devbox.schema.json",
+  "packages": [
+    "binutils",
+    "coreutils",
+    "cpio",
+    "dosfstools",
+    "e2fsprogs",
+    "file",
+    "findutils",
+    "gzip",
+    "libisoburn",
+    "syslinux",
+    "util-linux",
+    "wget",
+    "xorriso",
+    "xz",
+    "mtools@latest"
+  ],
+  "shell": {
+    "init_hook": [
+      "echo 'Devbox environment for Disk Wiper ISO builder initialized'"
+    ],
+    "scripts": {
+      "build": "chmod +x ./build-hybrid-wiper.sh && ./build-hybrid-wiper.sh",
+      "clean": "rm -rf wiper-build arch-build *.iso"
+    }
+  }
+}
