@@ -30,23 +30,10 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-devbox-
     
-    - name: Cache kernel build
-      uses: actions/cache@v4
-      with:
-        path: kernel-build
-        key: ${{ runner.os }}-kernel-${{ hashFiles('build-custom-kernel.sh') }}
-        restore-keys: |
-          ${{ runner.os }}-kernel-
-    
     - name: Build custom kernel
       run: |
-        # Check if kernel is already built
-        if [ ! -f "kernel-build/linux-6.6.13/arch/x86/boot/bzImage" ]; then
-          echo "Building custom kernel..."
-          devbox run build-kernel
-        else
-          echo "Using cached kernel build"
-        fi
+        echo "Building custom kernel..."
+        devbox run build-kernel
     
     - name: Build ISO
       run: devbox run build

@@ -7,7 +7,7 @@ set -e
 # Configuration
 WORK_DIR="$(pwd)"
 BUILD_DIR="$WORK_DIR/kernel-build"
-KERNEL_VERSION="6.6.13"  # LTS kernel
+KERNEL_VERSION="6.12.40"  # LTS kernel
 KERNEL_URL="https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-${KERNEL_VERSION}.tar.xz"
 
 # Colors
@@ -349,5 +349,5 @@ echo "- NVMe support"
 echo "- Common RAID controllers"
 echo "- USB storage support"
 echo ""
-echo "To use this kernel, copy it to your ISO build:"
-echo "cp $BUILD_DIR/linux-${KERNEL_VERSION}/arch/x86/boot/bzImage /path/to/iso/boot/vmlinuz"
+echo "To use this kernel, run the ISO build:"
+echo "devbox run build"

@@ -54,7 +54,7 @@ devbox run clean
 
 ## Technical Details
 
-- **Base**: Custom Linux kernel 6.6.13 LTS
+- **Base**: Custom Linux kernel 6.12.40 LTS
 - **Init System**: Minimal busybox-based init
 - **Boot Process**:
   1. Kernel boots with all drivers built-in

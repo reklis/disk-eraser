@@ -11,7 +11,7 @@ INITRD_DIR="$BUILD_DIR/custom-initrd"
 OUTPUT_ISO="$WORK_DIR/disk-wiper.iso"
 
 # Use custom kernel if available
-CUSTOM_KERNEL="$WORK_DIR/kernel-build/linux-6.6.13/arch/x86/boot/bzImage"
+CUSTOM_KERNEL="$WORK_DIR/kernel-build/linux-6.12.40/arch/x86/boot/bzImage"
 
 # Colors
 RED='\033[0;31m'
