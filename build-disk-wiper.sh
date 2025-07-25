@@ -37,17 +37,20 @@ echo -e "${YELLOW}Creating build directories...${NC}"
 mkdir -p "$ISO_DIR"/{isolinux,EFI/BOOT,boot/grub}
 mkdir -p "$INITRD_DIR"
 
-# Use custom kernel or download one
-if [ -f "$CUSTOM_KERNEL" ] && [ "${USE_STOCK_KERNEL:-false}" != "true" ]; then
+# Use custom kernel
+if [ -f "$CUSTOM_KERNEL" ]; then
     echo -e "${YELLOW}Using custom kernel...${NC}"
     cp "$CUSTOM_KERNEL" "$ISO_DIR/vmlinuz"
 else
-    echo -e "${YELLOW}Using Debian stock kernel for testing...${NC}"
-    if [ ! -f "$BUILD_DIR/debian-kernel" ]; then
-        wget --show-progress -O "$BUILD_DIR/debian-kernel" \
-            "http://ftp.debian.org/debian/dists/bookworm/main/installer-amd64/current/images/netboot/debian-installer/amd64/linux"
+    echo -e "${YELLOW}Custom kernel not found, building it now...${NC}"
+    ./build-custom-kernel.sh
+    if [ -f "$CUSTOM_KERNEL" ]; then
+        echo -e "${GREEN}Kernel built successfully!${NC}"
+        cp "$CUSTOM_KERNEL" "$ISO_DIR/vmlinuz"
+    else
+        echo -e "${RED}ERROR: Kernel build failed!${NC}"
+        exit 1
     fi
-    cp "$BUILD_DIR/debian-kernel" "$ISO_DIR/vmlinuz"
 fi
 
 # Create minimal initrd
@@ -101,6 +104,10 @@ echo "========================================"
 echo "     UNIVERSAL DISK WIPER"
 echo "========================================"
 echo ""
+echo "WARNING: ALL DISKS WILL BE WIPED!"
+echo "This includes internal AND external drives"
+echo "Only the boot USB device will be spared"
+echo ""
 
 # Wait for devices
 echo "Waiting for devices to settle..."
@@ -120,6 +127,18 @@ DISKS=""
 echo "Scanning for disks to wipe..."
 echo ""
 
+# Find the boot device
+BOOT_DEV=""
+for mount in $(cat /proc/mounts | grep -E "^/dev/(sd|hd|vd|nvme)" | awk '{print $1}'); do
+    # Get the base device (remove partition number)
+    base_dev=$(echo $mount | sed 's/[0-9]*$//' | sed 's/p[0-9]*$//')
+    if [ -b "$base_dev" ]; then
+        BOOT_DEV="$base_dev"
+        echo "Boot device detected: $BOOT_DEV"
+        break
+    fi
+done
+
 for dev in $(ls /sys/block/ | grep -v "loop\|ram\|sr\|fd"); do
     if [ -e "/sys/block/$dev/size" ]; then
         size=$(cat /sys/block/$dev/size)
@@ -138,11 +157,20 @@ for dev in $(ls /sys/block/ | grep -v "loop\|ram\|sr\|fd"); do
                     model=$(cat /sys/block/$dev/device/model | tr -d '\n')
                 fi
                 
-                size_gb=$((size * 512 / 1000 / 1000 / 1000))
-                echo "Found: $devpath - ${size_gb}GB - $model"
+                # Check if it's USB
+                is_usb="No"
+                if [ -d "/sys/block/$dev/device" ]; then
+                    if readlink -f /sys/block/$dev | grep -q "/usb"; then
+                        is_usb="Yes"
+                    fi
+                fi
                 
-                if cat /proc/mounts | grep -q "^$devpath"; then
-                    echo "  Skipping - mounted"
+                size_gb=$((size * 512 / 1000 / 1000 / 1000))
+                echo "Found: $devpath - ${size_gb}GB - $model - USB: $is_usb"
+                
+                # Skip only if it's our boot device
+                if [ "$devpath" = "$BOOT_DEV" ]; then
+                    echo "  Skipping - boot device"
                     continue
                 fi
                 

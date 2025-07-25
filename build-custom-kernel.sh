@@ -184,6 +184,29 @@ CONFIG_USB_UHCI_HCD=y
 CONFIG_USB_STORAGE=y
 CONFIG_USB_UAS=y
 
+# Additional USB storage drivers for external drives
+CONFIG_USB_STORAGE_REALTEK=y
+CONFIG_USB_STORAGE_DATAFAB=y
+CONFIG_USB_STORAGE_FREECOM=y
+CONFIG_USB_STORAGE_ISD200=y
+CONFIG_USB_STORAGE_USBAT=y
+CONFIG_USB_STORAGE_SDDR09=y
+CONFIG_USB_STORAGE_SDDR55=y
+CONFIG_USB_STORAGE_JUMPSHOT=y
+CONFIG_USB_STORAGE_ALAUDA=y
+CONFIG_USB_STORAGE_ONETOUCH=y
+CONFIG_USB_STORAGE_KARMA=y
+CONFIG_USB_STORAGE_CYPRESS_ATACB=y
+CONFIG_USB_STORAGE_ENE_UB6250=y
+
+# Firewire/IEEE1394 support for external drives
+CONFIG_FIREWIRE=y
+CONFIG_FIREWIRE_OHCI=y
+CONFIG_FIREWIRE_SBP2=y
+
+# Thunderbolt support
+CONFIG_THUNDERBOLT=y
+
 # Filesystems (minimal)
 CONFIG_EXT2_FS=y
 CONFIG_EXT3_FS=y
@@ -318,6 +341,11 @@ echo -e "${YELLOW}Ensuring critical options...${NC}"
 ./scripts/config --enable CONFIG_FB_EFI
 ./scripts/config --enable CONFIG_FB_SIMPLE
 ./scripts/config --enable CONFIG_FRAMEBUFFER_CONSOLE
+# Enable USB storage drivers
+./scripts/config --enable CONFIG_USB_STORAGE
+./scripts/config --enable CONFIG_USB_UAS
+# Enable Thunderbolt
+./scripts/config --enable CONFIG_THUNDERBOLT
 
 # Finalize config
 make olddefconfig
@@ -347,7 +375,9 @@ echo "- VirtIO support for QEMU/KVM"
 echo "- AHCI/SATA support for physical hardware"
 echo "- NVMe support"
 echo "- Common RAID controllers"
-echo "- USB storage support"
+echo "- USB storage support (including specialized chipsets)"
+echo "- Thunderbolt support"
+echo "- FireWire/IEEE1394 support"
 echo ""
 echo "To use this kernel, run the ISO build:"
 echo "devbox run build"

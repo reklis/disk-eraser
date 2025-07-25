@@ -69,7 +69,9 @@ jobs:
           
           ## ⚠️ WARNING
           
-          **This ISO will IMMEDIATELY and AUTOMATICALLY wipe ALL internal hard drives when booted!**
+          **This ISO will IMMEDIATELY and AUTOMATICALLY wipe ALL hard drives when booted!**
+          
+          This includes BOTH internal and external drives. Only the USB boot device is protected.
           
           - No confirmation prompts
           - No user interaction required

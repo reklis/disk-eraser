@@ -1,10 +1,10 @@
 # Universal Disk Wiper
 
-A bootable ISO that automatically wipes ALL internal hard drives without user interaction.
+A bootable ISO that automatically wipes ALL hard drives (internal and external) without user interaction.
 
 ## ⚠️ WARNING
 
-**This ISO will IMMEDIATELY and AUTOMATICALLY wipe ALL internal hard drives when booted!**
+**This ISO will IMMEDIATELY and AUTOMATICALLY wipe ALL hard drives when booted!**
 
 - No confirmation prompts
 - No user interaction required
@@ -17,8 +17,8 @@ A bootable ISO that automatically wipes ALL internal hard drives without user in
 - **BIOS and UEFI Boot**: Supports both legacy BIOS and modern UEFI systems
 - **Custom Linux Kernel**: Built with all storage drivers compiled in (no module loading required)
 - **Storage Support**: SATA, NVMe, SAS, RAID controllers, VirtIO, USB storage
-- **Automatic Detection**: Finds and wipes all internal drives
-- **Boot Device Protection**: Skips mounted/boot devices
+- **Automatic Detection**: Finds and wipes ALL drives (internal and external)
+- **Boot Device Protection**: Only skips the USB boot device
 - **Zero Dependencies**: Completely self-contained
 
 ## Building
