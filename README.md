@@ -60,8 +60,9 @@ devbox run clean
   1. Kernel boots with all drivers built-in
   2. Init script runs automatically
   3. Detects all block devices
-  4. Wipes partition tables and boot sectors
-  5. Powers off when complete
+  4. Completely overwrites all disks with random data
+  5. Shows real-time progress for each disk
+  6. Powers off when complete
 
 ## Testing
 

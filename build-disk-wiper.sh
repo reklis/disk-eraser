@@ -72,7 +72,7 @@ chmod +x bin/busybox
 
 # Create symlinks
 cd bin
-for cmd in sh ash cat chmod chown cp dd df echo false grep kill ln ls lsmod mkdir mknod modprobe mount mv poweroff ps rm rmdir sed sleep sync true umount uname; do
+for cmd in sh ash awk cat chmod chown cp dd df echo false grep kill ln ls lsmod mkdir mknod modprobe mount mv poweroff ps rm rmdir sed sleep sync true umount uname; do
     ln -s busybox $cmd
 done
 cd ..
@@ -87,19 +87,33 @@ cd ..
 cat > "$INITRD_DIR/init" << 'EOINIT'
 #!/bin/sh
 
+# Debug info
+echo "Init script starting..."
+echo "PID: $$"
+
+# Ensure we have a shell to fall back to
+if [ ! -x /bin/sh ]; then
+    echo "FATAL: No shell found at /bin/sh"
+    while true; do sleep 1; done
+fi
+
+# Error handler to prevent kernel panic
+trap 'echo "Error in init! Starting emergency shell..."; exec /bin/sh' INT TERM EXIT
+
 # Mount essential filesystems
-mount -t proc none /proc
-mount -t sysfs none /sys
-mount -t devtmpfs none /dev
-mount -t tmpfs none /run
+mount -t proc none /proc || echo "Failed to mount /proc"
+mount -t sysfs none /sys || echo "Failed to mount /sys"
+mount -t devtmpfs none /dev || echo "Failed to mount /dev"
+mount -t tmpfs none /run || echo "Failed to mount /run"
 
 # Suppress kernel messages
-echo "1" > /proc/sys/kernel/printk
+echo "1" > /proc/sys/kernel/printk 2>/dev/null || true
 
 # Set up environment
 export PATH=/usr/bin:/bin:/usr/sbin:/sbin
 
-clear
+# Clear screen using ANSI escape sequence
+printf '\033[2J\033[H'
 echo "========================================"
 echo "     UNIVERSAL DISK WIPER"
 echo "========================================"
@@ -154,13 +168,17 @@ for dev in $(ls /sys/block/ | grep -v "loop\|ram\|sr\|fd"); do
             if [ -b "$devpath" ]; then
                 model="Unknown"
                 if [ -f "/sys/block/$dev/device/model" ]; then
-                    model=$(cat /sys/block/$dev/device/model | tr -d '\n')
+                    # Read model and remove newline
+                    model=$(cat /sys/block/$dev/device/model)
+                    # Remove trailing newline more simply
+                    model=$(echo $model)
                 fi
                 
-                # Check if it's USB
+                # Check if it's USB by looking for usb in the device path
                 is_usb="No"
                 if [ -d "/sys/block/$dev/device" ]; then
-                    if readlink -f /sys/block/$dev | grep -q "/usb"; then
+                    # Check if the device path contains 'usb'
+                    if ls -la /sys/block/$dev | grep -q "/usb"; then
                         is_usb="Yes"
                     fi
                 fi
@@ -197,16 +215,30 @@ echo "Starting disk wipe..."
 for disk in $DISKS; do
     echo ""
     echo "Wiping $disk..."
-    echo -n "  Progress: "
     
-    dd if=/dev/zero of=$disk bs=1M count=100 status=none 2>/dev/null
-    echo -n "."
-    
-    dd if=/dev/zero of=$disk bs=1M count=10 status=none 2>/dev/null
-    echo -n "."
-    
-    sync
-    echo " Done!"
+    # Get disk size
+    if [ -b "$disk" ]; then
+        # Extract device name without /dev/ prefix using shell parameter expansion
+        dev_name=${disk#/dev/}
+        size_sectors=$(cat /sys/block/$dev_name/size 2>/dev/null || echo 0)
+        size_gb=$((size_sectors * 512 / 1000 / 1000 / 1000))
+        echo "  Size: ${size_gb}GB"
+        
+        # Wipe the entire disk
+        echo "  Starting wipe with random data..."
+        echo "  Disk size: ${size_gb}GB"
+        echo "  This will take several minutes..."
+        
+        dd if=/dev/urandom of=$disk bs=1M
+        
+        # Final sync
+        echo "  Syncing to ensure all data is written..."
+        sync
+        
+        echo "  Done!"
+    else
+        echo "  Error: Device not accessible"
+    fi
 done
 
 echo ""
@@ -214,11 +246,23 @@ echo "========================================"
 echo "     ALL DISKS HAVE BEEN WIPED!"
 echo "========================================"
 echo ""
+echo "All drives have been completely overwritten with random data."
+echo "Data recovery is not possible."
+echo ""
 echo "System will power off in 10 seconds..."
 sleep 10
 
 sync
-poweroff -f
+
+# Try to power off
+echo "Attempting to power off..."
+poweroff -f || halt -f || reboot -f
+
+# If we're still here, prevent kernel panic
+echo "Power off failed! Entering idle loop..."
+while true; do
+    sleep 10
+done
 EOINIT
 
 chmod +x "$INITRD_DIR/init"
