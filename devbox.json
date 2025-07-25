@@ -15,15 +15,29 @@
     "wget",
     "xorriso",
     "xz",
-    "mtools@latest"
+    "mtools@latest",
+    "gcc",
+    "gnumake",
+    "elfutils",
+    "elfutils.dev",
+    "bc",
+    "perl",
+    "bison",
+    "flex",
+    "openssl",
+    "pkg-config",
+    "ncurses.dev"
   ],
   "shell": {
     "init_hook": [
       "echo 'Devbox environment for Disk Wiper ISO builder initialized'"
     ],
     "scripts": {
-      "build": "chmod +x ./build-hybrid-wiper.sh && ./build-hybrid-wiper.sh",
-      "clean": "rm -rf wiper-build arch-build *.iso"
+      "build": "chmod +x ./build-complete.sh && ./build-complete.sh",
+      "build-universal": "chmod +x ./build-universal-wiper.sh && ./build-universal-wiper.sh",
+      "build-hybrid": "chmod +x ./build-hybrid-wiper.sh && ./build-hybrid-wiper.sh",
+      "build-kernel": "chmod +x ./build-custom-kernel.sh && ./build-custom-kernel.sh",
+      "clean": "rm -rf wiper-build arch-build kernel-build *.iso"
     }
   }
 }

@@ -50,6 +50,23 @@ echo -e "${YELLOW}Customizing initrd...${NC}"
 cd "$INITRD_DIR"
 gzip -dc "$BUILD_DIR/initrd.gz" | cpio -id --quiet 2>/dev/null || true
 
+# Check what we extracted
+echo "Checking extracted initrd contents..."
+if [ -d lib/modules ]; then
+    echo "  Found kernel modules"
+    KVER=$(ls lib/modules | head -1)
+    echo "  Kernel version: $KVER"
+    # List some important modules
+    find lib/modules -name "*virtio*.ko" -o -name "*ata*.ko" -o -name "sd_mod.ko" | head -10
+else
+    echo "  WARNING: No kernel modules found in initrd!"
+fi
+
+# Preserve the original init as init.orig
+if [ -f init ]; then
+    mv init init.orig
+fi
+
 # Create simple init that wipes disks
 cat > "$INITRD_DIR/init" << 'EOINIT'
 #!/bin/sh
@@ -67,9 +84,43 @@ echo "1" > /proc/sys/kernel/printk
 export PATH=/usr/bin:/bin:/usr/sbin:/sbin
 
 # Load modules
-for mod in sd_mod sr_mod ahci libahci ata_piix virtio_pci virtio_blk virtio_scsi; do
-    modprobe $mod 2>/dev/null
+echo "Loading kernel modules..."
+for mod in sd_mod sr_mod ahci libahci libata ata_piix ata_generic virtio virtio_pci virtio_blk virtio_scsi virtio_ring; do
+    if modprobe $mod 2>/dev/null; then
+        echo "  Loaded: $mod"
+    else
+        echo "  Failed: $mod"
+    fi
 done
+
+# Show loaded modules
+echo ""
+echo "Loaded modules:"
+lsmod | grep -E "(virtio|ata|ahci|sd_mod)" || echo "No relevant modules loaded"
+echo ""
+
+# Check if modules directory exists
+echo "Checking for kernel modules..."
+if [ -d /lib/modules ]; then
+    KVER=$(ls /lib/modules | head -1)
+    echo "Kernel version: $KVER"
+    if [ -d "/lib/modules/$KVER" ]; then
+        echo "Module directory exists"
+        # Run depmod to ensure module dependencies are set up
+        if command -v depmod >/dev/null 2>&1; then
+            echo "Running depmod..."
+            depmod -a $KVER 2>/dev/null || echo "  depmod failed"
+        fi
+        # Check for virtio modules specifically
+        echo "Looking for virtio modules:"
+        find /lib/modules/$KVER -name "*virtio*" -type f | head -5
+    else
+        echo "ERROR: No modules for kernel $KVER"
+    fi
+else
+    echo "ERROR: No /lib/modules directory - kernel modules missing!"
+fi
+echo ""
 
 # Start udev
 if [ -x /lib/systemd/systemd-udevd ]; then
@@ -202,18 +253,6 @@ for sysdev in /sys/block/*; do
     fi
 done
 
-# Also try hardcoded device names as fallback
-echo ""
-echo "Checking hardcoded device paths..."
-for dev in /dev/sda /dev/vda /dev/hda /dev/nvme0n1; do
-    if [ -b "$dev" ] && ! echo "$DISKS" | grep -q "$dev"; then
-        echo "  Found additional device: $dev"
-        if ! mount | grep -q "^$dev"; then
-            DISKS="$DISKS $dev"
-            echo "    Added to wipe list"
-        fi
-    fi
-done
 
 if [ -z "$DISKS" ]; then
     echo ""
