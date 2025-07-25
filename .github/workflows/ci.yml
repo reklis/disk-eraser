@@ -1,0 +1,73 @@
+name: CI Build
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Install Devbox
+      uses: jetpack-io/devbox-install-action@v0.11.0
+    
+    - name: Cache Devbox packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/devbox
+          ~/.nix-profile
+          /nix
+        key: ${{ runner.os }}-devbox-${{ hashFiles('devbox.json', 'devbox.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-devbox-
+    
+    - name: Cache kernel build
+      uses: actions/cache@v4
+      with:
+        path: kernel-build
+        key: ${{ runner.os }}-kernel-${{ hashFiles('build-custom-kernel.sh') }}
+        restore-keys: |
+          ${{ runner.os }}-kernel-
+    
+    - name: Build custom kernel
+      run: |
+        # Check if kernel is already built
+        if [ ! -f "kernel-build/linux-6.6.13/arch/x86/boot/bzImage" ]; then
+          echo "Building custom kernel..."
+          devbox run build-kernel
+        else
+          echo "Using cached kernel build"
+        fi
+    
+    - name: Build ISO
+      run: devbox run build
+    
+    - name: Verify ISO was created
+      run: |
+        if [ ! -f "disk-wiper.iso" ]; then
+          echo "Error: disk-wiper.iso was not created"
+          exit 1
+        fi
+        echo "ISO size: $(du -h disk-wiper.iso)"
+        file disk-wiper.iso
+    
+    - name: Generate SHA256 checksum
+      run: |
+        sha256sum disk-wiper.iso > disk-wiper.iso.sha256
+        cat disk-wiper.iso.sha256
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: disk-wiper-iso-${{ github.sha }}
+        path: |
+          disk-wiper.iso
+          disk-wiper.iso.sha256
+        retention-days: 7

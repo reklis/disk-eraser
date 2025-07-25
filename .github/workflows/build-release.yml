@@ -1,0 +1,115 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Install Devbox
+      uses: jetpack-io/devbox-install-action@v0.11.0
+    
+    - name: Cache Devbox packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/devbox
+          ~/.nix-profile
+          /nix
+        key: ${{ runner.os }}-devbox-${{ hashFiles('devbox.json', 'devbox.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-devbox-
+    
+    - name: Cache kernel build
+      uses: actions/cache@v4
+      with:
+        path: kernel-build
+        key: ${{ runner.os }}-kernel-${{ hashFiles('build-custom-kernel.sh') }}
+        restore-keys: |
+          ${{ runner.os }}-kernel-
+    
+    - name: Build custom kernel
+      run: |
+        # Check if kernel is already built
+        if [ ! -f "kernel-build/linux-6.6.13/arch/x86/boot/bzImage" ]; then
+          echo "Building custom kernel..."
+          devbox run build-kernel
+        else
+          echo "Using cached kernel build"
+        fi
+    
+    - name: Build ISO
+      run: devbox run build
+    
+    - name: Generate SHA256 checksum
+      run: |
+        sha256sum disk-wiper.iso > disk-wiper.iso.sha256
+        cat disk-wiper.iso.sha256
+    
+    - name: Create Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          disk-wiper.iso
+          disk-wiper.iso.sha256
+        body: |
+          # Universal Disk Wiper ${{ github.ref_name }}
+          
+          ## ⚠️ WARNING
+          
+          **This ISO will IMMEDIATELY and AUTOMATICALLY wipe ALL internal hard drives when booted!**
+          
+          - No confirmation prompts
+          - No user interaction required
+          - Wipes begin immediately after boot
+          - ALL data will be PERMANENTLY DESTROYED
+          
+          ## Download
+          
+          - `disk-wiper.iso` - Bootable ISO image
+          - `disk-wiper.iso.sha256` - SHA256 checksum
+          
+          ## Verify Download
+          
+          ```bash
+          sha256sum -c disk-wiper.iso.sha256
+          ```
+          
+          ## Usage
+          
+          1. Write ISO to USB drive: `sudo dd if=disk-wiper.iso of=/dev/sdX bs=4M status=progress`
+          2. Boot target system from USB
+          3. System will automatically wipe all internal drives
+          4. System will power off when complete
+          
+          ## Testing
+          
+          **ONLY test in isolated VMs!**
+          
+          ```bash
+          # BIOS mode
+          qemu-system-x86_64 -m 2048 -cdrom disk-wiper.iso -hda test-disk.img
+          
+          # UEFI mode  
+          qemu-system-x86_64 -m 2048 -cdrom disk-wiper.iso -hda test-disk.img -bios /usr/share/ovmf/OVMF.fd
+          ```
+        draft: false
+        prerelease: false
+    
+    - name: Upload ISO artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: disk-wiper-iso
+        path: |
+          disk-wiper.iso
+          disk-wiper.iso.sha256
+        retention-days: 7
