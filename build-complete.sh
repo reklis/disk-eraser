@@ -363,17 +363,32 @@ cat > "$ISO_DIR/boot/grub/grub.cfg" << 'EOCFG'
 set timeout=3
 set default=0
 
-# Try multiple paths since GRUB might see different root depending on boot method
+# Direct boot without searching
 menuentry "Universal Disk Wiper" {
-    search --no-floppy --set=root --file /boot/vmlinuz
-    linux /boot/vmlinuz quiet
-    initrd /boot/initrd.gz
+    insmod all_video
+    insmod gzio
+    insmod part_gpt
+    insmod part_msdos
+    insmod fat
+    insmod iso9660
+    
+    echo "Loading kernel..."
+    linux (cd)/boot/vmlinuz quiet
+    echo "Loading initrd..."
+    initrd (cd)/boot/initrd.gz
+    echo "Booting..."
 }
 
 menuentry "Universal Disk Wiper (Verbose)" {
-    search --no-floppy --set=root --file /boot/vmlinuz
-    linux /boot/vmlinuz
-    initrd /boot/initrd.gz
+    insmod all_video
+    insmod gzio
+    insmod part_gpt
+    insmod part_msdos
+    insmod fat
+    insmod iso9660
+    
+    linux (cd)/boot/vmlinuz
+    initrd (cd)/boot/initrd.gz
 }
 EOCFG
 
@@ -396,20 +411,19 @@ dd if=/dev/zero of="$EFI_IMG" bs=1M count=$TOTAL_SIZE
 mkfs.vfat "$EFI_IMG"
 
 export MTOOLS_SKIP_CHECK=1
-# Create directory structure
-mmd -i "$EFI_IMG" ::EFI
-mmd -i "$EFI_IMG" ::EFI/boot
-mmd -i "$EFI_IMG" ::boot
+# Create directory structure (ignore errors if they already exist)
+mmd -i "$EFI_IMG" ::EFI 2>/dev/null || true
+mmd -i "$EFI_IMG" ::EFI/boot 2>/dev/null || true
+mmd -i "$EFI_IMG" ::boot 2>/dev/null || true
+mmd -i "$EFI_IMG" ::boot/grub 2>/dev/null || true
+mmd -i "$EFI_IMG" ::EFI/boot/grub 2>/dev/null || true
 
-# Copy GRUB
-mcopy -i "$EFI_IMG" "$ISO_DIR/EFI/boot/bootx64.efi" ::EFI/boot/bootx64.efi
-
-# Copy kernel and initrd to boot directory in EFI image
-mcopy -i "$EFI_IMG" "$ISO_DIR/boot/vmlinuz" ::boot/vmlinuz
-mcopy -i "$EFI_IMG" "$ISO_DIR/boot/initrd.gz" ::boot/initrd.gz
-
-# Also copy grub.cfg to EFI image
-mcopy -i "$EFI_IMG" "$ISO_DIR/boot/grub/grub.cfg" ::EFI/boot/grub.cfg
+# Copy files (use -o to overwrite without prompting)
+mcopy -o -i "$EFI_IMG" "$ISO_DIR/EFI/boot/bootx64.efi" ::EFI/boot/bootx64.efi
+mcopy -o -i "$EFI_IMG" "$ISO_DIR/boot/vmlinuz" ::boot/vmlinuz
+mcopy -o -i "$EFI_IMG" "$ISO_DIR/boot/initrd.gz" ::boot/initrd.gz
+mcopy -o -i "$EFI_IMG" "$ISO_DIR/boot/grub/grub.cfg" ::EFI/boot/grub/grub.cfg
+mcopy -o -i "$EFI_IMG" "$ISO_DIR/boot/grub/grub.cfg" ::boot/grub/grub.cfg
 
 cp "$EFI_IMG" "$ISO_DIR/boot/efiboot.img"
 

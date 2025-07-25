@@ -221,6 +221,14 @@ CONFIG_SERIAL_8250_PCI=y
 CONFIG_SERIAL_8250_NR_UARTS=4
 CONFIG_SERIAL_8250_RUNTIME_UARTS=4
 
+# Framebuffer support (required for EFI console)
+CONFIG_FB=y
+CONFIG_FB_EFI=y
+CONFIG_FB_VESA=y
+CONFIG_FRAMEBUFFER_CONSOLE=y
+CONFIG_FRAMEBUFFER_CONSOLE_DETECT_PRIMARY=y
+CONFIG_FB_SIMPLE=y
+
 # Early console for debugging
 CONFIG_EARLY_PRINTK=y
 CONFIG_PRINTK_TIME=y
@@ -240,6 +248,16 @@ CONFIG_CPU_SUP_AMD=y
 CONFIG_CPU_SUP_HYGON=y
 CONFIG_CPU_SUP_CENTAUR=y
 CONFIG_CPU_SUP_ZHAOXIN=y
+
+# EFI support (critical for EFI boot)
+CONFIG_EFI=y
+CONFIG_EFI_STUB=y
+CONFIG_EFI_BOOTLOADER_CONTROL=y
+CONFIG_EFI_PARTITION=y
+CONFIG_EFIVAR_FS=y
+CONFIG_EFI_VARS_PSTORE=y
+CONFIG_EFI_RUNTIME_MAP=y
+CONFIG_EFI_MIXED=y
 
 # Firmware loading support
 CONFIG_FW_LOADER=y
@@ -291,6 +309,15 @@ echo -e "${YELLOW}Ensuring critical options...${NC}"
 ./scripts/config --enable CONFIG_TMPFS
 ./scripts/config --enable CONFIG_PROC_FS
 ./scripts/config --enable CONFIG_SYSFS
+# Enable EFI support
+./scripts/config --enable CONFIG_EFI
+./scripts/config --enable CONFIG_EFI_STUB
+./scripts/config --enable CONFIG_EFI_PARTITION
+# Enable framebuffer for EFI console
+./scripts/config --enable CONFIG_FB
+./scripts/config --enable CONFIG_FB_EFI
+./scripts/config --enable CONFIG_FB_SIMPLE
+./scripts/config --enable CONFIG_FRAMEBUFFER_CONSOLE
 
 # Finalize config
 make olddefconfig

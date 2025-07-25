@@ -33,7 +33,9 @@
       "echo 'Devbox environment for Disk Wiper ISO builder initialized'"
     ],
     "scripts": {
-      "build": "chmod +x ./build-complete.sh && ./build-complete.sh",
+      "build": "chmod +x ./build-simple-efi.sh && ./build-simple-efi.sh",
+      "build-systemd": "chmod +x ./build-systemd-boot.sh && ./build-systemd-boot.sh",
+      "build-grub": "chmod +x ./build-complete.sh && ./build-complete.sh",
       "build-universal": "chmod +x ./build-universal-wiper.sh && ./build-universal-wiper.sh",
       "build-hybrid": "chmod +x ./build-hybrid-wiper.sh && ./build-hybrid-wiper.sh",
       "build-kernel": "chmod +x ./build-custom-kernel.sh && ./build-custom-kernel.sh",
