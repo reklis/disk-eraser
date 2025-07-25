@@ -216,7 +216,7 @@ TIMEOUT 50
 
 LABEL wipe
     KERNEL /vmlinuz
-    APPEND initrd=/initrd.gz console=ttyS0,115200 console=tty0
+    APPEND initrd=/initrd.gz quiet
 EOF
 
 # Setup GRUB for EFI boot - using simplified approach
@@ -252,31 +252,13 @@ cd "$WORK_DIR"
 cat > "$ISO_DIR/boot/grub/grub.cfg" << 'EOF'
 set timeout=3
 set default=0
-set debug=all
 
-# Setup serial console
-serial --speed=115200 --unit=0 --word=8 --parity=no --stop=1
-terminal_input console serial
-terminal_output console serial
+# No serial console needed for production
 
 # Simple direct boot
 menuentry "Universal Disk Wiper" {
-    echo "Loading kernel..."
-    # Try loading from CD first, then fallback to HD
-    if [ -e "(cd)/vmlinuz" ]; then
-        echo "Found kernel on CD"
-        linux (cd)/vmlinuz console=ttyS0,115200 console=tty0 earlyprintk=serial,ttyS0,115200
-        initrd (cd)/initrd.gz
-    elif [ -e "(hd0)/vmlinuz" ]; then
-        echo "Found kernel on HD"
-        linux (hd0)/vmlinuz console=ttyS0,115200 console=tty0 earlyprintk=serial,ttyS0,115200
-        initrd (hd0)/initrd.gz
-    else
-        echo "Trying without device prefix..."
-        linux /vmlinuz console=ttyS0,115200 console=tty0 earlyprintk=serial,ttyS0,115200
-        initrd /initrd.gz
-    fi
-    echo "About to boot..."
+    linux /vmlinuz quiet
+    initrd /initrd.gz
 }
 EOF
 

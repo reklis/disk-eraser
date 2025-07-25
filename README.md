@@ -1,100 +1,89 @@
-# Disk Eraser - Secure Hard Drive Wiper
+# Universal Disk Wiper
 
-A custom Alpine Linux ISO that automatically overwrites all internal hard drives with random data on boot.
+A bootable ISO that automatically wipes ALL internal hard drives without user interaction.
 
-## ⚠️ WARNING ⚠️
+## ⚠️ WARNING
 
-**THIS TOOL WILL PERMANENTLY DESTROY ALL DATA ON ALL INTERNAL HARD DRIVES**
+**This ISO will IMMEDIATELY and AUTOMATICALLY wipe ALL internal hard drives when booted!**
 
 - No confirmation prompts
-- No way to cancel once started
-- Data cannot be recovered
-- Use only on systems where you want to permanently erase all data
+- No user interaction required
+- Wipes begin immediately after boot
+- ALL data will be PERMANENTLY DESTROYED
 
 ## Features
 
-- Boots automatically and starts wiping immediately
-- Overwrites all internal hard drives with random data from `/dev/urandom`
-- Skips USB boot device automatically
-- Skips all removable media
-- Lightweight Alpine Linux base (~50MB ISO)
-- Shows progress during wiping
-- Automatically powers off when complete
+- **Universal Hardware Support**: Works on physical servers, desktops, and VMs
+- **BIOS and UEFI Boot**: Supports both legacy BIOS and modern UEFI systems
+- **Custom Linux Kernel**: Built with all storage drivers compiled in (no module loading required)
+- **Storage Support**: SATA, NVMe, SAS, RAID controllers, VirtIO, USB storage
+- **Automatic Detection**: Finds and wipes all internal drives
+- **Boot Device Protection**: Skips mounted/boot devices
+- **Zero Dependencies**: Completely self-contained
 
-## Building the ISO
+## Building
 
-### Requirements
+### Prerequisites
 
-- Linux system with root access
-- Internet connection to download Alpine Linux
-- Build dependencies (installed automatically by script):
-  - wget
-  - xorriso
-  - squashfs-tools
-  - syslinux
-  - isolinux
-
-### Build Steps
-
+Install [Devbox](https://www.jetpack.io/devbox/):
 ```bash
-cd alpine-wiper
-sudo ./build-iso.sh
+curl -fsSL https://get.jetpack.io/devbox | bash
 ```
 
-This will create `disk-wiper.iso` in the current directory.
-
-## Creating Bootable USB
+### Build the ISO
 
 ```bash
-# Find your USB device (be VERY careful to select the right device!)
-lsblk
+# Clone the repository
+git clone <repository-url>
+cd disk-eraser
 
-# Write the ISO to USB (replace /dev/sdX with your USB device)
-sudo dd if=disk-wiper.iso of=/dev/sdX bs=4M status=progress
+# Build the custom kernel (only needed once)
+devbox run build-kernel
+
+# Build the disk wiper ISO
+devbox run build
+
+# The ISO will be created as: disk-wiper.iso
 ```
 
-## Usage
+### Clean Build Artifacts
 
-1. Insert the USB stick into the target computer
-2. Boot from USB (may need to change BIOS/UEFI settings)
-3. System will automatically:
-   - Detect all internal hard drives
-   - Skip the USB boot device
-   - Overwrite each drive with random data
-   - Show progress for each drive
-   - Power off when complete
+```bash
+devbox run clean
+```
 
-## Boot Options
+## Technical Details
 
-The ISO provides two boot options:
+- **Base**: Custom Linux kernel 6.6.13 LTS
+- **Init System**: Minimal busybox-based init
+- **Boot Process**:
+  1. Kernel boots with all drivers built-in
+  2. Init script runs automatically
+  3. Detects all block devices
+  4. Wipes partition tables and boot sectors
+  5. Powers off when complete
 
-1. **Disk Wiper** (default): Automatically starts wiping after 3 seconds
-2. **Safe Mode**: Boots to shell without running wipe script (press Tab at boot menu)
+## Testing
 
-## How It Works
+**⚠️ ONLY test in isolated VMs with no important data!**
 
-1. Alpine Linux boots from USB
-2. Custom init script runs automatically
-3. Script identifies all block devices
-4. Filters out USB boot device and removable media
-5. Writes random data to each internal drive using `dd`
-6. Powers off system when complete
+```bash
+# Test with QEMU (BIOS mode)
+qemu-system-x86_64 -m 2048 -cdrom disk-wiper.iso -hda test-disk.img
 
-## Security Notes
+# Test with QEMU (UEFI mode)
+qemu-system-x86_64 -m 2048 -cdrom disk-wiper.iso -hda test-disk.img -bios /usr/share/ovmf/OVMF.fd
+```
 
-- Uses `/dev/urandom` for cryptographically secure random data
-- Overwrites entire drive including partition tables
-- Multiple passes can be added by modifying the script
-- No logs or data are retained
+## Files
 
-## Customization
-
-Edit `scripts/wipe-disks.sh` to:
-- Add multiple overwrite passes
-- Change data source (e.g., `/dev/zero` for faster writes)
-- Add specific drive filtering
-- Modify completion behavior
+- `build-disk-wiper.sh` - Main build script for the ISO
+- `build-custom-kernel.sh` - Builds the custom kernel with all drivers
+- `devbox.json` - Development environment configuration
+- `disk-wiper.iso` - The built ISO (after running build)
 
 ## License
 
-Use at your own risk. This tool is provided as-is for legitimate data sanitization purposes only.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+**WARNING**: This tool is designed for secure data destruction. Use at your own risk.
